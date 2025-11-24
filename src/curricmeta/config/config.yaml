@@ -1,0 +1,20 @@
+defaults:
+  - experiment: base
+  - task: base
+  - model: base
+  - meta/inner_loop: base
+  - meta/outer_loop: base
+  - optim: base
+  - curriculum: base
+  - logging: base
+  - callbacks: 
+    - console_logger
+    - noop
+
+seed: 1234
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d_%H-%M-%S}
