@@ -1,0 +1,54 @@
+###############################
+# Python bytecode / cache
+###############################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# pytest cache
+.pytest_cache/
+
+###############################
+# Package build artifacts
+###############################
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+
+# Editable install metadata
+src/curricmeta.egg-info/
+
+###############################
+# Virtual environments
+###############################
+.venv/
+venv/
+env/
+ENV/
+
+###############################
+# Hydra output directories
+###############################
+# Hydra creates run directories under ./outputs/YYYY-MM-DD/HH-MM-SS
+outputs/
+multirun/
+
+###############################
+# Experiment artifacts
+###############################
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+logs/
+*.log
+
+###############################
+# Data artifacts (if generated locally)
+######################
