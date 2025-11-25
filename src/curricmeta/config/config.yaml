@@ -1,9 +1,9 @@
 defaults:
-  - experiment: base
-  - task: base
-  - model: base
-  - meta/inner_loop: base
-  - meta/outer_loop: base
+  - experiment: meta_curriculum
+  - task: gaussian_2d
+  - model: mlp_2d 
+  - meta/inner_loop: supervised_curriculum
+  - meta/outer_loop: es_supervised
   - optim: base
   - curriculum: base
   - logging: base
