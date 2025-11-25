@@ -1,18 +1,19 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List
+
+
+from curricmeta.tasks.base import SupervisedCurriculumTask
 
 
 class Curriculum(ABC):
-    """Abstract curriculum interface.
-
-    Provides a sequence of stages that inner-loop training will iterate over.
-    """
-
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
+    @abstractmethod
+    def num_stages(self) -> int: ...
 
     @abstractmethod
-    def stages(self) -> Iterable[Any]:
-        """Yield curriculum stages (task-dependent type)."""
+    def make_stages(self, task: SupervisedCurriculumTask) -> List[Any]:
+        """
+        Return a list of curriculum stages for the task.
+        For supervised tasks: usually DataLoader objects.
+        """
         ...
