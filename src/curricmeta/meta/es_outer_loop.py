@@ -6,23 +6,24 @@ import torch
 
 from curricmeta.meta.outer_loop_base import OuterLoop
 from curricmeta.meta.supervised_curriculum_inner import SupervisedCurriculumInnerLoop
-from curricmeta.tasks.base import SupervisedCurriculumTask
+from curricmeta.tasks.base import SupervisedStagedTask
+from curricmeta.curriculum.base import Curriculum
 from curricmeta.utils.registry import register
 
-
-BuildTaskFn = Callable[[], SupervisedCurriculumTask]
-BuildModelFn = Callable[[SupervisedCurriculumTask], torch.nn.Module]
+BuildTaskFn = Callable[[], SupervisedStagedTask]
+BuildCurriculumFn = Callable[[], Curriculum]
+BuildModelFn = Callable[[SupervisedStagedTask], torch.nn.Module]
 
 
 @register("outer_loop", "es_supervised")
 class ESSupervisedOuterLoop(OuterLoop):
     """
-    ES outer loop for generic supervised curriculum tasks.
+    ES outer loop for generic staged supervised tasks with curricula.
 
-    It doesn't know which task or model you're using; it only knows:
-      - how many stages there are (n_stages from config)
-      - how to build fresh (task, model) pairs
-      - how to call the inner_loop
+    It only knows:
+      - how to build fresh (task, curriculum, model)
+      - how many stages there are (from task.num_stages())
+      - how to call the inner loop
     """
 
     def __init__(
@@ -30,12 +31,14 @@ class ESSupervisedOuterLoop(OuterLoop):
         config: Dict[str, Any],
         inner_loop: SupervisedCurriculumInnerLoop,
         build_task: BuildTaskFn,
+        build_curriculum: BuildCurriculumFn,
         build_model: BuildModelFn,
         device: torch.device,
     ):
         super().__init__(config)
         self.inner_loop = inner_loop
         self.build_task = build_task
+        self.build_curriculum = build_curriculum
         self.build_model = build_model
         self.device = device
 
@@ -44,12 +47,17 @@ class ESSupervisedOuterLoop(OuterLoop):
         self.population_size: int = int(config.get("population_size", 16))
         self.sigma: float = float(config.get("sigma", 0.1))
         self.step_size: float = float(config.get("step_size", 0.1))
+        self.init_log_lr: float = float(config.get("init_log_lr", -3.0))
 
-        # Meta-parameter dimension inferred from config (generic)
-        self.n_stages: int = int(config.get("n_stages"))
-        init_log_lr: float = float(config.get("init_log_lr", -3.0))
+        # Infer number of stages from a sample task
+        sample_task = self.build_task()
+        sample_task.setup()
+        n_stages = sample_task.num_stages()
+        sample_task.teardown()
+
+        self.n_stages: int = n_stages
         self.theta: torch.Tensor = torch.full(
-            (self.n_stages,), init_log_lr, dtype=torch.float32
+            (self.n_stages,), self.init_log_lr, dtype=torch.float32
         )
 
     def initialize_meta_params(self) -> Dict[str, Any]:
@@ -71,17 +79,17 @@ class ESSupervisedOuterLoop(OuterLoop):
 
     def _evaluate_one(self, meta_params: Dict[str, Any]) -> float:
         task = self.build_task()
-        task.setup()
+        curriculum = self.build_curriculum()
         model = self.build_model(task)
 
         inner_results = self.inner_loop.run(
             task=task,
+            curriculum=curriculum,
             model=model,
             meta_params=meta_params,
             device=self.device,
         )
 
-        task.teardown()
         return float(inner_results["test_acc"])
 
     def _evaluate_population(
@@ -95,7 +103,7 @@ class ESSupervisedOuterLoop(OuterLoop):
         inner_results: Dict[str, Any],
         meta_params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        # Not used in this ES variant; present to satisfy interface.
+        # Not used in this ES variant; present to satisfy the interface.
         return meta_params
 
     def run(self) -> Dict[str, Any]:

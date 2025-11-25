@@ -1,19 +1,23 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List
-
-
-from curricmeta.tasks.base import SupervisedCurriculumTask
+from typing import List
 
 
 class Curriculum(ABC):
-    @abstractmethod
-    def num_stages(self) -> int: ...
+    """
+    Task-agnostic curriculum interface.
+
+    Given a number of stages (e.g. difficulty levels) exposed by a task,
+    the curriculum returns a *schedule* over stage indices.
+
+    The task handles sampling; the curriculum only decides which stage
+    index to present when.
+    """
 
     @abstractmethod
-    def make_stages(self, task: SupervisedCurriculumTask) -> List[Any]:
+    def build_schedule(self, num_stages: int) -> List[int]:
         """
-        Return a list of curriculum stages for the task.
-        For supervised tasks: usually DataLoader objects.
+        Return a list of stage indices (0..num_stages-1) specifying the
+        order in which stages will be visited during inner-loop training.
         """
         ...

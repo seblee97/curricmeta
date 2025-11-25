@@ -1,26 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Callable
+from typing import Any, Dict
 
 import torch
 from omegaconf import DictConfig
 
 from curricmeta.callbacks.base import CallbackList
-from curricmeta.tasks.base import SupervisedCurriculumTask
+from curricmeta.tasks.base import SupervisedStagedTask
 from curricmeta.utils.registry import register, build
 
 
 @register("experiment", "meta_curriculum")
 class MetaCurriculumExperiment:
     """
-    Generic meta-learning experiment:
+    Generic meta-learning experiment for staged supervised tasks with curricula.
 
-      - Builds task, model, inner loop, outer loop from registries
-      - Wires them together
-      - Calls outer_loop.run()
-
-    The only specialization here is that we're in the "supervised curriculum"
-    family; RL would be a different experiment name if needed.
+    Config controls:
+      - task.name
+      - curriculum.name
+      - model.name
+      - meta.inner_loop.name
+      - meta.outer_loop.name
     """
 
     def __init__(self, cfg: DictConfig, callbacks: CallbackList):
@@ -34,13 +34,18 @@ class MetaCurriculumExperiment:
         device_str = str(getattr(self.cfg.experiment, "device", "cpu"))
         device = torch.device(device_str)
 
-        # Builders for task + model, used repeatedly by the outer loop
-        def build_task() -> SupervisedCurriculumTask:
+        # Builders used by the outer loop
+        def build_task() -> SupervisedStagedTask:
             task_cfg = dict(self.cfg.task)
             name = task_cfg.pop("name")
             return build("task", name, config=task_cfg)
 
-        def build_model(task: SupervisedCurriculumTask) -> torch.nn.Module:
+        def build_curriculum():
+            cur_cfg = dict(self.cfg.curriculum)
+            name = cur_cfg.pop("name")
+            return build("curriculum", name, config=cur_cfg)
+
+        def build_model(task: SupervisedStagedTask) -> torch.nn.Module:
             model_cfg = dict(self.cfg.model)
             name = model_cfg.pop("name")
             model_cfg.setdefault("in_dim", task.input_dim())
@@ -56,13 +61,13 @@ class MetaCurriculumExperiment:
         # Outer loop
         outer_name = self.cfg.meta.outer_loop.name
         outer_cfg = dict(self.cfg.meta.outer_loop)
-
         outer_loop = build(
             "outer_loop",
             outer_name,
             config=outer_cfg,
             inner_loop=inner_loop,
             build_task=build_task,
+            build_curriculum=build_curriculum,
             build_model=build_model,
             device=device,
         )

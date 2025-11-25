@@ -5,7 +5,7 @@ defaults:
   - meta/inner_loop: supervised_curriculum
   - meta/outer_loop: es_supervised
   - optim: base
-  - curriculum: base
+  - curriculum: sequential
   - logging: base
   - callbacks: 
     - console_logger
