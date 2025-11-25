@@ -1,0 +1,7 @@
+# MLP model for 2D Gaussian classification
+name: mlp_2d
+
+in_dim: 2
+n_classes: 3
+hidden_dims: [64, 64]
+activation: relu

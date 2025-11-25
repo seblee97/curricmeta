@@ -1,0 +1,10 @@
+name: es_supervised
+
+n_iters: 20
+population_size: 16
+sigma: 0.2
+step_size: 0.1
+
+# Meta-parameter dimension (generic)
+n_stages: 4
+init_log_lr: -3.0

@@ -1,0 +1,3 @@
+name: meta_curriculum
+checkpoint_dir: outputs/checkpoints
+device: cpu
